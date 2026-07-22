@@ -44,8 +44,7 @@ inputs:
       Comma-separated Tailscale ACL tags for the ephemeral runner node. The
       tailnet ACLs must allow the OAuth client to assume these tags and the
       tagged node to reach the Nomad API address.
-    required: false
-    default: tag:ecosystem-device-database-release-action
+    required: true
 
 runs:
   using: composite

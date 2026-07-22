@@ -35,6 +35,7 @@ jobs:
           nomad-token: ${{ secrets.NOMAD_TOKEN }}
           tailscale-oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           tailscale-oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tailscale-tags: tag:my-deploy-action
 ```
 
 ## Inputs
@@ -49,7 +50,7 @@ jobs:
 | `nomad-version` | no | `2.0.4` | Nomad CLI version to install. |
 | `tailscale-oauth-client-id` | yes | — | Tailscale OAuth client ID used to join the tailnet. |
 | `tailscale-oauth-secret` | yes | — | Tailscale OAuth client secret. |
-| `tailscale-tags` | no | `tag:ecosystem-device-database-release-action` | ACL tags for the ephemeral runner node. |
+| `tailscale-tags` | yes | — | Comma-separated ACL tags for the ephemeral runner node. |
 
 ## Prerequisites
 
