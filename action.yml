@@ -1,4 +1,4 @@
-name: Nomad deploy
+name: Nomad set image
 description: >-
   Roll a new container image out to a running Nomad job over Tailscale.
   Fetches the live job spec, swaps only the target task's image on every

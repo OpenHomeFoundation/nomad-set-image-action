@@ -1,8 +1,9 @@
-# nomad-deploy-action
+# nomad-set-image
 
 Composite GitHub Action that rolls a new container image out to a running
 [Nomad](https://www.nomadproject.io/) job over
-[Tailscale](https://tailscale.com/).
+[Tailscale](https://tailscale.com/) — Nomad's answer to
+`kubectl set image` + wait-for-rollout.
 
 It fetches the live job spec, swaps only the target task's image on every
 task group that has it, and resubmits. Everything else in the spec is
@@ -26,7 +27,7 @@ jobs:
       contents: read
     steps:
       - name: Roll out new image tag
-        uses: OpenHomeFoundation/nomad-deploy-action@<sha> # vX.Y.Z
+        uses: OpenHomeFoundation/nomad-set-image@<sha> # vX.Y.Z
         with:
           image: ${{ needs.publish.outputs.image }}:${{ needs.publish.outputs.version }}
           job: my-nomad-job
