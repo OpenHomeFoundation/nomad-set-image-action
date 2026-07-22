@@ -1,4 +1,4 @@
-# nomad-set-image
+# nomad-set-image-action
 
 Composite GitHub Action that rolls a new container image out to a running
 [Nomad](https://www.nomadproject.io/) job over
@@ -27,7 +27,7 @@ jobs:
       contents: read
     steps:
       - name: Roll out new image tag
-        uses: OpenHomeFoundation/nomad-set-image@<sha> # vX.Y.Z
+        uses: OpenHomeFoundation/nomad-set-image-action@<sha> # vX.Y.Z
         with:
           image: ${{ needs.publish.outputs.image }}:${{ needs.publish.outputs.version }}
           job: my-nomad-job
