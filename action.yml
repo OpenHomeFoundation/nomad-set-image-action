@@ -1,0 +1,107 @@
+name: Nomad deploy
+description: >-
+  Roll a new container image out to a running Nomad job over Tailscale.
+  Fetches the live job spec, swaps only the target task's image on every
+  task group that has it, and resubmits. Everything else in the spec is
+  round-tripped untouched, so config owned elsewhere (e.g. secret env vars
+  injected by infrastructure-ansible) is preserved.
+
+inputs:
+  image:
+    description: >-
+      Fully-qualified image reference to deploy (registry/name:tag). Deploy
+      by ":tag" rather than digest if anything reads the tag back from the
+      scheduled job (infrastructure-ansible does).
+    required: true
+  job:
+    description: Name of the Nomad job to update.
+    required: true
+  task:
+    description: >-
+      Name of the task whose image is swapped, on every task group that
+      contains it.
+    required: false
+    default: server
+  nomad-addr:
+    description: Nomad HTTP API address, reached over the tailnet.
+    required: true
+  nomad-token:
+    description: Nomad ACL token allowed to submit the job.
+    required: true
+  nomad-version:
+    description: Nomad CLI version to install.
+    required: false
+    # renovate: datasource=github-releases depName=hashicorp/nomad
+    default: "2.0.4"
+  tailscale-oauth-client-id:
+    description: Tailscale OAuth client ID used to join the tailnet.
+    required: true
+  tailscale-oauth-secret:
+    description: Tailscale OAuth client secret.
+    required: true
+  tailscale-tags:
+    description: >-
+      Comma-separated Tailscale ACL tags for the ephemeral runner node. The
+      tailnet ACLs must allow the OAuth client to assume these tags and the
+      tagged node to reach the Nomad API address.
+    required: false
+    default: tag:ecosystem-device-database-release-action
+
+runs:
+  using: composite
+  steps:
+    # Join the tailnet so the runner can reach the Nomad API at its MagicDNS
+    # name.
+    - name: Connect to Tailscale
+      uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3.3.0
+      with:
+        oauth-client-id: ${{ inputs.tailscale-oauth-client-id }}
+        oauth-secret: ${{ inputs.tailscale-oauth-secret }}
+        tags: ${{ inputs.tailscale-tags }}
+
+    - name: Install Nomad CLI
+      # Pinned past v1.0.0 (still node20) to the main commit that moved the
+      # action onto node24; HashiCorp hasn't cut a new tag yet.
+      uses: hashicorp/setup-nomad@6e88df50dd00f3737f04fddde2bf2bd446e313dd # node24, unreleased
+      with:
+        version: ${{ inputs.nomad-version }}
+
+    - name: Roll out new image
+      shell: bash
+      env:
+        NOMAD_ADDR: ${{ inputs.nomad-addr }}
+        NOMAD_TOKEN: ${{ inputs.nomad-token }}
+        NOMAD_JOB: ${{ inputs.job }}
+        NOMAD_TASK: ${{ inputs.task }}
+        IMAGE_REF: ${{ inputs.image }}
+      run: |
+        echo "Deploying $IMAGE_REF to task '$NOMAD_TASK' of job '$NOMAD_JOB' at $NOMAD_ADDR"
+
+        # Fetch the running job and swap only the target task's image on
+        # every group. Everything else set by whoever owns the job spec is
+        # preserved because we round-trip the live spec rather than
+        # re-rendering it.
+        nomad job inspect "$NOMAD_JOB" \
+          | jq --arg img "$IMAGE_REF" --arg task "$NOMAD_TASK" '
+              .Job.TaskGroups |= map(
+                .Tasks |= map(
+                  if .Name == $task then .Config.image = $img else . end
+                )
+              )
+              | { Job: .Job }
+            ' > "$RUNNER_TEMP/job.json"
+
+        # Refuse to submit a spec the swap didn't touch — a task-name typo
+        # would otherwise resubmit the job unchanged and report success.
+        swapped=$(jq --arg img "$IMAGE_REF" \
+          '[.Job.TaskGroups[].Tasks[] | select(.Config.image == $img)] | length' \
+          "$RUNNER_TEMP/job.json")
+        if [ "$swapped" -eq 0 ]; then
+          echo "::error::No task named '$NOMAD_TASK' in job '$NOMAD_JOB' — nothing to deploy."
+          exit 1
+        fi
+
+        # `nomad job run` blocks on the resulting deployment and exits
+        # non-zero if the rollout fails its health checks, so the calling
+        # workflow fails loudly.
+        nomad job run -json "$RUNNER_TEMP/job.json"
