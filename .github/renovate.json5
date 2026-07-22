@@ -1,0 +1,21 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    // Includes helpers:pinGitHubActionDigests, so the SHA-pinned `uses:`
+    // steps in action.yml keep their digest + version comment up to date.
+    'config:best-practices',
+  ],
+  customManagers: [
+    // Bump `default:` input values in action.yml that carry a
+    // `# renovate: datasource=... depName=...` hint (e.g. nomad-version).
+    {
+      customType: 'regex',
+      managerFilePatterns: ['/(^|/)action\\.ya?ml$/'],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[a-z0-9-.]+?) depName=(?<depName>\\S+?)(?: versioning=(?<versioning>\\S+?))?\\n\\s*default: "(?<currentValue>[^"]+)"',
+      ],
+      // GitHub release tags are v-prefixed (v2.0.4); the input value isn't.
+      extractVersionTemplate: '^v?(?<version>.*)$',
+    },
+  ],
+}
