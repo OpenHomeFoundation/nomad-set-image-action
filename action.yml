@@ -32,7 +32,7 @@ inputs:
     description: Nomad CLI version to install.
     required: false
     # renovate: datasource=github-releases depName=hashicorp/nomad
-    default: "2.0.5"
+    default: "2.0.6"
   tailscale-oauth-client-id:
     description: Tailscale OAuth client ID used to join the tailnet.
     required: true
