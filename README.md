@@ -47,7 +47,7 @@ jobs:
 | `task` | no | `server` | Task whose image is swapped, on every group that contains it. |
 | `nomad-addr` | yes | — | Nomad HTTP API address, reached over the tailnet. |
 | `nomad-token` | yes | — | Nomad ACL token allowed to submit the job. |
-| `nomad-version` | no | `2.0.4` | Nomad CLI version to install. |
+| `nomad-version` | no | `2.1.1` | Nomad CLI version to install. |
 | `tailscale-oauth-client-id` | yes | — | Tailscale OAuth client ID used to join the tailnet. |
 | `tailscale-oauth-secret` | yes | — | Tailscale OAuth client secret. |
 | `tailscale-tags` | yes | — | Comma-separated ACL tags for the ephemeral runner node. |
